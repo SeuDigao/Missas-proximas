@@ -1,81 +1,130 @@
-# missas-proximas
+# OGG Audio Translator
 
-A [Claude Code](https://claude.ai/code) skill that finds nearby Catholic mass times for any location in Brazil.
+Batch-translates OGG audio files into other languages while preserving the original speaker's voice, emotion, pacing, and intonation.
 
-## Overview
+---
 
-Ask naturally about mass times — "tem missa hoje?", "missa perto de mim", "missa em Gramado" — and the skill locates Catholic churches within 5 km, finds their schedules from official parish websites and social media, and returns the next upcoming masses sorted by time, with distance and source confidence.
+## Two approaches
 
-## Platform
-
-**Designed for [Claude Code](https://claude.ai/code)** (CLI or IDE extension). This skill uses Claude Code tools (`Bash`, `WebSearch`, `WebFetch`) and will not run in mobile Claude or other environments.
-
-> The [original skill](https://github.com/SeuDigao/Hor-rios-de-missas) was built for the mobile Claude app. This is a Claude Code adaptation that replaces mobile-only tools (`user_location_v0`, `places_search`, `user_time_v0`) with their Claude Code equivalents.
-
-## How It Works
-
-1. **Location** — detects your approximate city via IP geolocation (`ipapi.co`). If you name a city or neighborhood, uses that instead.
-2. **Time** — gets the current date and time via `Bash date`.
-3. **Churches** — searches for Catholic parishes, chapels, and sanctuaries within 5 km using `WebSearch` and `WebFetch`.
-4. **Schedules** — fetches mass times from parish websites, diocesan sites, and social media pages.
-5. **Result** — lists upcoming masses sorted by time, with distance, confidence level (confirmed / a confirmar), and links to sources.
-
-## Trigger Phrases
-
-The skill activates on any of these (no need to invoke it explicitly):
-
-- "tem missa hoje?"
-- "missa perto de mim"
-- "onde tem missa agora?"
-- "missa em [cidade]"
-- "missa no bairro [X] de [cidade]"
-- "horário de missa", "missa domingo", "próxima missa"
-- "paróquia", "chapel", "celebração católica"
-
-## Parameters
-
-| Parameter | Default | Description |
+| | ElevenLabs Dubbing | Meta SeamlessExpressive |
 |---|---|---|
-| Location | IP geolocation | City/neighborhood/address named by the user, or detected by IP |
-| Radius | 5 km | Distance from reference point; overridable ("até 10 km", "só no bairro") |
-| Window | Today + tomorrow | Time range; overridable ("missa de domingo", "missa na sexta") |
+| **Script** | `dub_elevenlabs.py` | `dub_seamless.py` |
+| **Cost** | ~$0.30–0.50 / min of audio | Free |
+| **Setup** | API key only | GPU + ~10 GB model download |
+| **Voice preserved** | Yes (cloned) | Approximate |
+| **Expression preserved** | Yes | Best available (research-grade) |
+| **Output format** | MP3 | WAV |
 
-## Output Format
+Start with **ElevenLabs** unless you have a GPU and need to run at scale without API costs.
 
-```
-Próxima missa: 18h30 (daqui a 40 min), Capela São José, 1,2 km.
+---
 
-Hoje (quinta, 12/11):
-• 18h30, Capela São José (capela), 1,2 km, confirmado
-• 19h30, Matriz N. Sra. de Fátima (paróquia), 2,8 km, confirmado
-• 19h00, Capela Santo Antônio, 4,1 km, a confirmar
+## Quick start (ElevenLabs)
 
-Amanhã:
-• 7h00, Matriz N. Sra. de Fátima, 2,8 km
+### 1. Install dependencies
 
-Redes: Matriz N. Sra. de Fátima: @paroquiafatima (Instagram)
-```
-
-## Honesty Rules
-
-The skill never fabricates mass times. Each result is marked:
-- **confirmado** — sourced from an official parish site or recent post
-- **a confirmar** — from an indirect or undated source
-
-When a schedule is uncertain and the mass is imminent (under 1 hour), the skill recommends confirming by phone or social media before heading out.
-
-## Installation
-
-The skill is already installed if this file is in your `~/.claude/skills/missas-proximas/` folder. To install on another machine, copy the entire `missas-proximas/` folder there and restart Claude Code.
-
-## Files
-
-```
-SKILL.md    — Skill definition and runtime instructions
-README.md   — This file
+```bash
+pip install -r requirements.txt
 ```
 
-## Credits
+### 2. Set your API key
 
-Original skill by [SeuDigao](https://github.com/SeuDigao/Hor-rios-de-missas).
-Claude Code adaptation by Rodrigo Fernandes.
+Open `.env` and replace the placeholder with your actual key:
+
+```
+ELEVENLABS_API_KEY=your_key_here
+```
+
+Get your key at: https://elevenlabs.io/app/settings/api-keys
+
+### 3. Run
+
+```bash
+python scripts/dub_elevenlabs.py \
+  --input  ./test \
+  --output ./out \
+  --target-lang es
+```
+
+Output files are saved as `<original_name>_<lang>.mp3` in the output directory.
+Re-running skips files that were already dubbed.
+
+### Language codes (BCP-47)
+
+| Language | Code |
+|---|---|
+| Spanish | `es` |
+| French | `fr` |
+| German | `de` |
+| Portuguese (Brazil) | `pt` |
+| Italian | `it` |
+| Japanese | `ja` |
+| Chinese | `zh` |
+| Korean | `ko` |
+| Arabic | `ar` |
+| Hindi | `hi` |
+
+Full list: https://elevenlabs.io/docs/dubbing/overview
+
+---
+
+## Quick start (SeamlessExpressive)
+
+### 1. Install dependencies
+
+```bash
+pip install torch torchaudio soundfile tqdm
+pip install git+https://github.com/facebookresearch/seamless_communication.git
+```
+
+> Requires Python 3.9+, a CUDA-capable GPU (8 GB+ VRAM recommended), and ~10 GB disk space for the model (downloaded automatically on first run).
+
+### 2. Run
+
+```bash
+python scripts/dub_seamless.py \
+  --input  ./test \
+  --output ./out \
+  --target-lang spa
+```
+
+Use `--device cpu` if you don't have a GPU (expect significantly slower processing).
+
+### Language codes (ISO 639-3)
+
+| Language | Code |
+|---|---|
+| Spanish | `spa` |
+| French | `fra` |
+| German | `deu` |
+| Portuguese | `por` |
+| Italian | `ita` |
+| Japanese | `jpn` |
+| Chinese (Mandarin) | `cmn` |
+| Korean | `kor` |
+| Arabic | `arb` |
+| Hindi | `hin` |
+
+Full list: https://github.com/facebookresearch/seamless_communication#supported-languages
+
+---
+
+## Folder structure
+
+```
+ogg-translator/
+├── scripts/
+│   ├── dub_elevenlabs.py   # ElevenLabs Dubbing API (primary)
+│   └── dub_seamless.py     # Meta SeamlessExpressive (local)
+├── test/                   # drop your OGG files here to test
+├── requirements.txt
+├── .env               ← add your API key here
+├── .env.example       ← template
+└── README.md
+```
+
+---
+
+## Limitations
+
+Full expression preservation is still an open research problem. Both approaches will faithfully carry over voice identity and general emotional tone, but subtle nuances (e.g. a specific laugh, a sharp breath) may not transfer perfectly. This is the current state of the art across all tools in this space.
